@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QrTtNguyenPhuoc 24/7 - Napas 24/7 - VietQR - Ngân Hàng</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--bg:#e8f4ff;--card:#fff;--tx:#0f2747;--mut:#5b6f8a;--pri:#0a6cff;--bd:#cfe0f5;--err:#d92d20;--ok:#12805c}
+@media(prefers-color-scheme:dark){:root{--bg:#0c1a2e;--card:#14263f;--tx:#e6f0ff;--mut:#9db3d1;--bd:#27405f}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:linear-gradient(160deg,var(--bg),#b9ddff55);color:var(--tx);min-height:100vh}
+.wrap{max-width:980px;margin:0 auto;padding:16px}
+h1{font-size:clamp(15px,2.6vw,20px);text-align:center;margin:8px 0 16px;color:var(--pri);letter-spacing:.2px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:16px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+input,select,button{width:100%;font:inherit;padding:11px 12px;border-radius:10px;border:1px solid var(--bd);background:transparent;color:var(--tx)}
+select option{color:#000}
+input::placeholder{color:var(--mut);opacity:.75}
+button{background:var(--pri);color:#fff;border:0;font-weight:700;cursor:pointer;margin-top:16px}
+button.sec{background:transparent;color:var(--pri);border:1px solid var(--pri);margin-top:8px}
+button:disabled{opacity:.6;cursor:wait}
+.hint{font-size:12px;color:var(--mut);margin-top:4px}
+#msg{margin-top:12px;font-size:14px;font-weight:600;min-height:20px}
+.warn{color:#b45309}.err{color:var(--err)}.ok{color:var(--ok)}
+details{margin-top:14px;font-size:13px}
+summary{cursor:pointer;color:var(--pri);font-weight:600}
+#out{display:none;text-align:center}
+#cv{max-width:100%;height:auto;border-radius:14px}
+.empty{color:var(--mut);text-align:center;padding:60px 10px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>QrTtNguyenPhuoc 24/7 - Napas 24/7 - VietQR - Ngân Hàng</h1>
+  <div class="grid">
+    <div class="box">
+      <label>Ngân hàng</label>
+      <input id="bankSearch" placeholder="Gõ để tìm ngân hàng (ví dụ: Vietcombank, MB, BIDV...)">
+      <select id="bank" style="margin-top:6px"></select>
+
+      <label>Số tài khoản (STK)</label>
+      <input id="stk" inputmode="numeric" placeholder="Nhập số tài khoản người nhận" autocomplete="off">
+
+      <label>Chi nhánh (không bắt buộc)</label>
+      <input id="branch" placeholder="Ví dụ: CN Tên tỉnh/thành - Hội sở">
+
+      <label>Tên chủ tài khoản (tự động viết hoa, không dấu)</label>
+      <input id="name" placeholder="Ví dụ: NGUYEN VAN A (gõ có dấu cũng được)" autocomplete="off">
+
+      <label>Số tiền (VNĐ) - có thể bỏ trống</label>
+      <input id="amount" inputmode="numeric" placeholder="Ví dụ: 100000">
+
+      <label>Nội dung QR</label>
+      <input id="note" maxlength="50" placeholder="Ví dụ: Thanh toan don hang 001 (tự bỏ dấu)">
+
+      <button id="go">Tạo QR</button>
+      <div id="msg"></div>
+    </div>
+
+    <div class="box">
+      <div id="empty" class="empty">QR sẽ hiện ở đây sau khi bạn nhập thông tin và bấm Tạo QR.</div>
+      <div id="out">
+        <canvas id="cv"></canvas>
+        <button id="dl">Tải ảnh QR (PNG)</button>
+        <button id="cp" class="sec">Sao chép chuỗi QR</button>
+      </div>
+    </div>
+  </div>
+  <div class="box" style="margin-top:16px;font-size:12.5px;color:var(--mut);line-height:1.55">
+    <b style="color:var(--tx)">Miễn trừ trách nhiệm:</b> Trang web này chỉ hỗ trợ tạo mã QR theo thông tin do người dùng tự nhập. Chúng tôi <b>không xác minh</b> tài khoản ngân hàng, tên chủ tài khoản hay nội dung có thật hay không. Chúng tôi không chịu trách nhiệm pháp lý đối với việc người dùng tạo mã QR bất hợp pháp hoặc sử dụng mã QR cho bất kỳ mục đích và hình thức nào. Người dùng tự chịu trách nhiệm kiểm tra kỹ thông tin trước khi chuyển tiền.
+  </div>
+</div>
+<div id="tmp" style="position:fixed;left:-9999px;top:0"></div>
+
+<script>
+const FALLBACK=[["VietinBank","970415"],["Vietcombank","970436"],["BIDV","970418"],["Agribank","970405"],["MBBank","970422"],["Techcombank","970407"],["ACB","970416"],["VPBank","970432"],["TPBank","970423"],["Sacombank","970403"],["HDBank","970437"],["VIB","970441"],["SHB","970443"],["OCB","970448"],["MSB","970426"],["SeABank","970440"],["LPBank","970449"],["Eximbank","970431"],["SCB","970429"],["NamABank","970428"],["BacABank","970409"],["ABBANK","970425"],["BaoVietBank","970438"],["NCB","970419"],["PVcomBank","970412"],["VietBank","970433"],["KienLongBank","970452"],["Saigonbank","970400"],["PGBank","970430"],["VietABank","970427"],["GPBank","970408"],["CBBank","970444"],["OceanBank","970414"],["BVBank","970454"],["COOPBANK","970446"],["VRB","970421"],["IndovinaBank","970434"],["DongA Bank","970406"],["Shinhan Bank","970424"],["Woori Bank","970457"],["Hong Leong Bank","970442"],["Public Bank","970439"],["UOB","970458"],["Standard Chartered","970410"],["HSBC","458761"],["CIMB","422589"],["Nonghyup Bank","801011"],["KEB Hana (HN)","970467"],["KEB Hana (HCM)","970466"],["Cake","546034"],["Ubank","546035"],["Timo","963388"],["Liobank","963369"],["KBank","668888"]];
+let BANKS=FALLBACK.map(([n,b])=>({short:n,name:n,bin:b}));
+const $=id=>document.getElementById(id);
+const bankSel=$('bank');
+
+function noAccent(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D')}
+function cleanName(s){return noAccent(s).toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim()}
+function cleanNote(s){return noAccent(s).replace(/[^A-Za-z0-9 .,\-_\/]/g,' ').replace(/\s+/g,' ').trim().slice(0,50)}
+function setMsg(t,c){const m=$('msg');m.textContent=t;m.className=c||''}
+
+function renderBanks(filter=''){
+  const f=noAccent(filter).toLowerCase();
+  const list=BANKS.filter(b=>!f||noAccent(b.short+' '+b.name+' '+b.bin).toLowerCase().includes(f));
+  const cur=bankSel.value;
+  bankSel.innerHTML='<option value="">-- Chọn ngân hàng --</option>'+list.map(b=>`<option value="${b.bin}">${b.short}${b.name!==b.short?' - '+b.name:''} (${b.bin})</option>`).join('');
+  if(cur&&list.some(b=>b.bin===cur))bankSel.value=cur;
+  else if(f&&list.length===1)bankSel.value=list[0].bin;
+}
+renderBanks();
+$('bankSearch').addEventListener('input',e=>renderBanks(e.target.value));
+
+fetch('https://api.vietqr.io/v2/banks').then(r=>r.json()).then(j=>{
+  if(j&&j.data&&j.data.length){
+    BANKS=j.data.filter(b=>b.bin).map(b=>({short:b.shortName||b.code,name:b.name,bin:String(b.bin)}));
+    renderBanks($('bankSearch').value);
+  }
+}).catch(()=>{});
+
+
+$('name').addEventListener('input',e=>{const p=e.target.selectionStart;const v=noAccent(e.target.value).toUpperCase().replace(/[^A-Z0-9 ]/g,'');e.target.value=v;try{e.target.setSelectionRange(p,p)}catch(_){}});
+$('stk').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,''));
+$('amount').addEventListener('input',e=>{const d=e.target.value.replace(/\D/g,'');e.target.value=d?Number(d).toLocaleString('vi-VN'):''});
+
+const tlv=(id,v)=>id+String(v.length).padStart(2,'0')+v;
+function crc16(s){let c=0xFFFF;for(let i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;for(let k=0;k<8;k++)c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}return c.toString(16).toUpperCase().padStart(4,'0')}
+function buildPayload(bin,acc,amount,note){
+  const merchant=tlv('00','A000000727')+tlv('01',tlv('00',bin)+tlv('01',acc))+tlv('02','QRIBFTTA');
+  let p=tlv('00','01')+tlv('01',amount?'12':'11')+tlv('38',merchant)+tlv('53','704');
+  if(amount)p+=tlv('54',String(amount));
+  p+=tlv('58','VN');
+  if(note)p+=tlv('62',tlv('08',note));
+  p+='6304';
+  return p+crc16(p);
+}
+
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function wrapText(c,t,x,y,maxW,lh){const w=t.split(' ');let l='';for(const s of w){const tt=l?l+' '+s:s;if(c.measureText(tt).width>maxW&&l){c.fillText(l,x,y);y+=lh;l=s}else l=tt}c.fillText(l,x,y);return y}
+
+function drawCard(qrCanvas,d){
+  const W=900,H=1380,cv=$('cv'),c=cv.getContext('2d');cv.width=W;cv.height=H;
+  const g=c.createLinearGradient(0,0,W,H);g.addColorStop(0,'#bfe3ff');g.addColorStop(1,'#6fb8ff');c.fillStyle=g;c.fillRect(0,0,W,H);
+  c.fillStyle='rgba(255,255,255,.25)';c.beginPath();c.arc(780,120,160,0,7);c.fill();c.beginPath();c.arc(90,1260,200,0,7);c.fill();
+  c.textAlign='center';c.textBaseline='alphabetic';c.fillStyle='#0a3d8f';c.font='700 30px system-ui,Arial';
+  c.fillText('QrTtNguyenPhuoc 24/7 - Napas 24/7 - VietQR - Ngân Hàng',W/2,90,W-60);
+  rr(c,60,140,W-120,1140,50);c.fillStyle='rgba(235,246,255,.93)';c.fill();
+  c.textBaseline='middle';
+  c.font='800 36px system-ui,Arial';c.fillStyle='#0b4fb3';c.textAlign='left';c.fillText(d.bankShort,100,215,300);
+  c.textAlign='center';c.font='italic 800 40px system-ui,Arial';c.fillStyle='#d1291f';c.fillText('VIETQR',W/2+20,215);
+  c.textAlign='right';c.font='italic 800 40px system-ui,Arial';c.fillStyle='#1d3f9e';c.fillText('napas 247',W-100,215);
+  rr(c,165,270,570,570,36);c.fillStyle='#fff';c.fill();
+  c.drawImage(qrCanvas,205,310,490,490);
+  c.textAlign='center';c.fillStyle='#0f2747';c.font='700 44px system-ui,Arial';c.fillText(d.name,W/2,910,W-180);
+  c.font='400 34px system-ui,Arial';c.fillStyle='#2b4468';
+  c.fillText('Tài khoản: '+d.acc,W/2,975);
+  c.textBaseline='alphabetic';
+  let y=1040;
+  y=wrapText(c,d.branch?d.bankShort+' - '+d.branch:d.bankName,W/2,y,W-200,44)+56;
+  if(d.amount){c.fillText('Số tiền: '+Number(d.amount).toLocaleString('vi-VN')+' VNĐ',W/2,y);y+=56}
+  if(d.note){wrapText(c,'Nội dung: '+d.note,W/2,y,W-200,44)}
+  c.textAlign='center';c.font='italic 600 24px system-ui,Arial';c.fillStyle='#8a4b00';
+  c.fillText('Thông tin ngân hàng chưa được xác minh là có thật hay không',W/2,1250,W-160);
+}
+
+let lastPayload='';
+$('go').addEventListener('click',async()=>{
+  const bin=bankSel.value,acc=$('stk').value.trim(),btn=$('go');
+  const amount=Number($('amount').value.replace(/\D/g,''))||0;
+  const note=cleanNote($('note').value);
+  $('out').style.display='none';$('empty').style.display='block';
+  if(!bin)return setMsg('Vui lòng chọn ngân hàng.','err');
+  if(acc.length<6||acc.length>19)return setMsg('Số tài khoản không hợp lệ (6-19 chữ số).','err');
+  btn.disabled=true;setMsg('Đang tạo QR...');
+  try{
+    const name=cleanName($('name').value);$('name').value=name;
+    if(!name)throw new Error('Vui lòng nhập tên chủ tài khoản.');
+    const bank=BANKS.find(b=>b.bin===bin)||{short:'',name:''};
+    const payload=buildPayload(bin,acc,amount,note);lastPayload=payload;
+    const tmp=$('tmp');tmp.innerHTML='';
+    new QRCode(tmp,{text:payload,width:490,height:490,correctLevel:QRCode.CorrectLevel.M});
+    await new Promise(r=>setTimeout(r,80));
+    const q=tmp.querySelector('canvas');
+    drawCard(q,{name,acc,bankShort:bank.short,bankName:bank.name,branch:noAccent($('branch').value).trim().toUpperCase(),amount,note});
+    $('out').style.display='block';$('empty').style.display='none';
+    setMsg('Đã tạo QR. Lưu ý: thông tin ngân hàng CHƯA được xác minh là có thật hay không.','warn');
+  }catch(e){setMsg(e.message,'err')}
+  btn.disabled=false;
+});
+
+$('dl').onclick=()=>{const a=document.createElement('a');a.download='QrTtNguyenPhuoc-'+$('stk').value+'.png';a.href=$('cv').toDataURL('image/png');a.click()};
+$('cp').onclick=async()=>{try{await navigator.clipboard.writeText(lastPayload);setMsg('Đã sao chép chuỗi QR.','ok')}catch(e){setMsg(lastPayload)}};
+</script>
+</body>
+</html>
